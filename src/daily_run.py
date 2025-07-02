@@ -23,15 +23,24 @@ def main():
     matches = get_today_matches()
     odds = get_odds()
     bets = []
-    # Adaptation à la nouvelle structure de l'API
+
+    # Envoi la liste des matchs du jour (optionnel)
+    if matches and matches.get("result"):
+        msg = "📅 Matchs du jour :\n"
+        for match in matches["result"]:
+            joueur1 = match.get('event_first_player')
+            joueur2 = match.get('event_second_player')
+            heure = match.get('event_time')
+            tournoi = match.get('tournament_name')
+            msg += f"- {joueur1} vs {joueur2} ({tournoi}) à {heure}\n"
+        send_telegram_message(msg)
+
+    # Détection des value bets
     if matches is None or matches.get("success") != 1 or "result" not in matches or not matches["result"]:
-        print("Pas de matchs trouvés ou erreur API.")
+        send_telegram_message("❌ Aucun match trouvé ou erreur API.")
         return
+
     for match in matches["result"]:
-        # Format/normalize player names (à adapter selon retour API)
-        # ...
-        # Find odds for this match
-        # ...
         gender = "M" if "atp" in match.get("event_type_type", "").lower() else "F"
         feats = compute_diff_features(match, stats_atp if gender == "M" else stats_wta)
         if feats is None: continue
@@ -41,9 +50,21 @@ def main():
         value = proba - proba_bk
         if value > THRESH_VALUE and odd1 >= THRESH_ODD:
             bets.append((match, value, proba, odd1))
+
+    # Envoi un message pour chaque pari détecté
     for m, value, proba, odd in bets:
-        msg = f"Value bet détecté : {m['event_first_player']} vs {m['event_second_player']}\nCote : {odd}\nValue : {value*100:.1f}%\nProba modèle : {proba*100:.1f}%\nMise : {BET_SIZE}€"
+        msg = (
+            f"Value bet détecté : {m['event_first_player']} vs {m['event_second_player']}\n"
+            f"Cote : {odd}\n"
+            f"Value : {value*100:.1f}%\n"
+            f"Proba modèle : {proba*100:.1f}%\n"
+            f"Mise : {BET_SIZE}€"
+        )
         send_telegram_message(msg)
+
+    # Si aucun value bet détecté
+    if not bets:
+        send_telegram_message("❌ Aucun value bet détecté aujourd'hui.")
 
 if __name__ == "__main__":
     main() 
