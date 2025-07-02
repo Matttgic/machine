@@ -23,6 +23,10 @@ def main():
     matches = get_today_matches()
     odds = get_odds()
     bets = []
+    # Fix: Ensure matches is a dict, not None
+    if matches is None:
+        print("No matches found or API did not return data.")
+        return
     for match in matches.get("matches", []):
         # Format/normalize player names (à adapter selon retour API)
         # ...
@@ -41,4 +45,4 @@ def main():
         send_telegram_message(msg)
 
 if __name__ == "__main__":
-    main()
+    main() 
