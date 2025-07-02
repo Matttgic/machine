@@ -1,12 +1,8 @@
-import os
 import requests
 
-def send_telegram_message(msg, token=None, chat_id=None):
-    token = token or os.getenv("TELEGRAM_BOT_TOKEN")
-    chat_id = chat_id or os.getenv("TELEGRAM_CHAT_ID")
-    if not token or not chat_id:
-        print("[Telegram] Token ou chat_id manquant !")
-        return None
+def send_telegram_message(msg):
+    token = "7850560556:AAG9iH9RXyo2maRtIv8RgdJ_N4TStdZQXDg"
+    chat_id = "291627358"
     url = f"https://api.telegram.org/bot{token}/sendMessage"
     payload = {
         "chat_id": chat_id,
@@ -14,7 +10,7 @@ def send_telegram_message(msg, token=None, chat_id=None):
         "parse_mode": "Markdown"
     }
     try:
-        print(f"[Telegram] Tentative d'envoi du message : {msg}")
+        print(f"[Telegram] Envoi du message : {msg}")
         r = requests.post(url, data=payload, timeout=10)
         print(f"[Telegram] Code retour: {r.status_code}")
         print(f"[Telegram] Réponse: {r.text}")
@@ -25,6 +21,6 @@ def send_telegram_message(msg, token=None, chat_id=None):
         print(f"[Telegram] Exception lors de l'appel API : {e}")
         return None
 
-# Pour tester directement :
+# Test direct
 if __name__ == "__main__":
-    send_telegram_message("Test Telegram depuis le script !") 
+    send_telegram_message("Test Telegram depuis le script avec token et chat_id en dur !") 
