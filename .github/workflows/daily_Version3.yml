@@ -1,8 +1,12 @@
 name: Daily Value Bet Tennis
 
 on:
+  workflow_run:
+    workflows: ["Normalize CSV"]    # Ce nom doit être identique à celui utilisé dans ton workflow normalize-csv.yml
+    types:
+      - completed
   schedule:
-    - cron: "30 7 * * *"
+    - cron: "30 7 * * *"            # Planifie l’exécution automatique tous les jours à 07:30 UTC
   workflow_dispatch:
 
 jobs:
@@ -10,16 +14,26 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
+
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
+
+      - name: Download normalized CSVs
+        uses: actions/download-artifact@v4
+        with:
+          name: normalized-csv
+          path: data/
+
       - name: Copy .env from secrets
         run: |
           echo "${{ secrets.ENVFILE }}" > .env
+
       - name: Run daily_run.py
-        run: python src/daily_run.py
+        run: python src/daily_run.py 
