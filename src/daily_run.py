@@ -43,12 +43,32 @@ def main():
     for match in matches["result"]:
         gender = "M" if "atp" in match.get("event_type_type", "").lower() else "F"
         feats = compute_diff_features(match, stats_atp if gender == "M" else stats_wta)
-        if feats is None: continue
+        if feats is None:
+            continue
         proba = model.predict_proba([list(feats.values())])[0][1]
-        odd1 = ... # à compléter selon format API des cotes
+
+        # Extraction de la cote du joueur 1
+        odd1 = None
+        match_id = str(match.get('event_key'))
+        player_name = match.get('event_first_player')
+        odd_match = next((o for o in odds if o.get('id') == match_id), None)
+        if odd_match:
+            for bookmaker in odd_match.get('bookmakers', []):
+                for market in bookmaker.get('markets', []):
+                    if market.get('key') == 'h2h':
+                        for outcome in market.get('outcomes', []):
+                            if outcome.get('name') == player_name:
+                                odd1 = outcome.get('price')
+                                break
+                        if odd1:
+                            break
+                if odd1:
+                    break
+
+        # Calcul value bet
         proba_bk = 1/odd1 if odd1 else 0
         value = proba - proba_bk
-        if value > THRESH_VALUE and odd1 >= THRESH_ODD:
+        if value > THRESH_VALUE and odd1 and odd1 >= THRESH_ODD:
             bets.append((match, value, proba, odd1))
 
     # Envoi un message pour chaque pari détecté
