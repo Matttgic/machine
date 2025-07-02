@@ -1,0 +1,72 @@
+🎯 Objectif global :
+--------------------
+Créer un modèle de paris sportifs sur le tennis permettant de générer un bénéfice net d’environ 500€/mois,
+avec des mises fixes de 20€ par pari.
+
+📊 Historique de la démarche :
+------------------------------
+1. Des fichiers historiques de matchs ATP/WTA 2024 ont été fournis avec les cotes des bookmakers.
+   - `matchs_atp.csv` (anciennement 2024.xlsx)
+   - `matchs_wta.csv` (anciennement 2024 (1).xlsx)
+
+2. Des fichiers CSV contenant les statistiques globales des joueurs (issues de TennisAbstract) ont été fournis :
+   - `stats_atp.csv` : stats agrégées pour les joueurs ATP
+   - `stats_wta.csv` : stats agrégées pour les joueuses WTA
+
+3. Un modèle de machine learning RandomForest a été entraîné à partir des écarts statistiques entre les deux joueurs pour chaque match.
+
+📌 Nom de la stratégie retenue : **StatsValue_RF20**
+
+📦 Fichiers utilisés pour entraîner le modèle :
+----------------------------------------------
+- `matchs_atp.csv` : résultats ATP 2024 avec cotes
+- `matchs_wta.csv` : résultats WTA 2024 avec cotes
+- `stats_atp.csv` : stats ATP globales par joueur
+- `stats_wta.csv` : stats WTA globales par joueuse
+
+🧠 Fonctionnement du modèle :
+-----------------------------
+1. Pour chaque match, on calcule les **différences statistiques** entre le joueur 1 et le joueur 2 :
+   - ex : `diff_ace% = joueur1["Ace%"] - joueur2["Ace%"]`
+   - D’autres features incluent 1st%, 2nd%, Hold%, etc.
+
+2. Le modèle RandomForest est entraîné pour **prédire la probabilité de victoire** du joueur 1
+   à partir de ces écarts statistiques.
+
+3. Les cotes réelles sont utilisées pour calculer la **probabilité implicite du bookmaker**.
+
+4. On détecte un **value bet** si :
+   - `proba_modèle - proba_bookmaker > 0.10` (donc value > 10%)
+   - ET `cote ≥ 1.80` (pour garantir un gain significatif)
+
+5. Une mise **fixe de 20€** est utilisée par pari.
+
+📈 Performance observée :
+-------------------------
+- Nombre de paris simulés : 249
+- ROI : +108%
+- Gain mensuel simulé : ~+449€
+
+💾 Génération du modèle (fichier `statsvalue_rf20_model.pkl`) :
+---------------------------------------------------------------
+1. Fusionner les fichiers `matchs_atp.csv` + `stats_atp.csv` (et idem WTA).
+2. Pour chaque match, récupérer les stats de chaque joueur à partir des fichiers stats.
+3. Calculer les `diff_ace%`, `diff_1st%`, etc. pour construire les features.
+4. Entraîner un `RandomForestClassifier` avec les features comme X et le résultat (player1 win) comme y.
+5. Sauvegarder le modèle avec `joblib.dump(model, 'statsvalue_rf20_model.pkl')`.
+
+⚙️ Intégration automatisée (script `daily_run.py`) :
+-----------------------------------------------------
+- Chargement du modèle `statsvalue_rf20_model.pkl`
+- Récupération des matchs du jour via API-Tennis (get_today_matches.py)
+- Récupération des cotes via The Odds API (get_tennis_odds.py)
+- Récupération des stats globales via `stats_atp.csv` / `stats_wta.csv`
+- Construction des features et prédictions
+- Filtrage des paris selon value > 10% et cote ≥ 1.80
+- Envoi des paris retenus via Telegram (`send_telegram.py`)
+
+🔑 APIs utilisées :
+-------------------
+- **API-Tennis.com** : pour récupérer les matchs du jour (fixtures)
+- **The Odds API** : pour récupérer les cotes réelles
+- **Telegram Bot API** : pour recevoir automatiquement les paris sélectionnés

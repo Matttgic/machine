@@ -1,0 +1,24 @@
+```python
+# EDA et Modèle RF20 – Extrait
+import pandas as pd
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.model_selection import train_test_split
+import joblib
+
+# Utilisation des vrais noms de fichiers normalisés
+matchs = pd.read_csv("../data/matchs_atp.norm.csv")
+stats = pd.read_csv("../data/stats_atp.norm.csv")
+
+# Merge, compute features, etc.
+# ... (voir instructions projet)
+
+# Train/test split
+X = ... # features différentiels
+y = ... # Player 1 win (1/0)
+X_train, X_test, y_train, y_test = train_test_split(X, y, stratify=y)
+
+# Modèle
+model = RandomForestClassifier(n_estimators=200, random_state=42)
+model.fit(X_train, y_train)
+joblib.dump(model, "../statsvalue_rf20_model.pkl")
+```
