@@ -1,4 +1,4 @@
-name: Daily Value Bet Tennis
+name: Main
 
 on:
   schedule:
