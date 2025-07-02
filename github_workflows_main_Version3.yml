@@ -1,0 +1,58 @@
+name: Daily Value Bet Tennis
+
+on:
+  schedule:
+    - cron: "30 7 * * *"
+  workflow_dispatch:
+
+jobs:
+  normalize:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run normalization script
+        run: python src/normalize_csv.py
+
+      - name: Upload normalized CSVs
+        uses: actions/upload-artifact@v4
+        with:
+          name: normalized-csv
+          path: data/*.norm.csv
+
+  daily-bet:
+    needs: normalize
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Download normalized CSVs
+        uses: actions/download-artifact@v4
+        with:
+          name: normalized-csv
+          path: data/
+
+      - name: Copy .env from secrets
+        run: |
+          echo "${{ secrets.ENVFILE }}" > .env
+
+      - name: Run daily_run.py
+        run: python src/daily_run.py
