@@ -15,6 +15,10 @@ THRESH_VALUE = 0.10
 THRESH_ODD = 1.80
 BET_SIZE = 20
 
+def is_atp_wta(match):
+    event_type = match.get("event_type_type", "").lower()
+    return ("atp" in event_type) or ("wta" in event_type)
+
 def main():
     # Chargement des modèles et données
     model = joblib.load(MODEL_PATH)
@@ -24,24 +28,33 @@ def main():
     odds = get_odds()
     bets = []
 
-    # Envoi la liste des matchs du jour (optionnel)
+    # Envoi la liste des matchs du jour (ATP/WTA uniquement)
     if matches and matches.get("result"):
-        msg = "📅 Matchs du jour :\n"
-        for match in matches["result"]:
-            joueur1 = match.get('event_first_player')
-            joueur2 = match.get('event_second_player')
-            heure = match.get('event_time')
-            tournoi = match.get('tournament_name')
-            msg += f"- {joueur1} vs {joueur2} ({tournoi}) à {heure}\n"
-        send_telegram_message(msg)
+        atp_wta_matches = [m for m in matches["result"] if is_atp_wta(m)]
+        if atp_wta_matches:
+            msg = "📅 Matchs ATP/WTA du jour :\n"
+            for match in atp_wta_matches:
+                joueur1 = match.get('event_first_player')
+                joueur2 = match.get('event_second_player')
+                heure = match.get('event_time')
+                tournoi = match.get('tournament_name')
+                msg += f"- {joueur1} vs {joueur2} ({tournoi}) à {heure}\n"
+            send_telegram_message(msg)
+        else:
+            send_telegram_message("❌ Aucun match ATP ou WTA trouvé aujourd'hui.")
 
-    # Détection des value bets
+    # Détection des value bets (ATP/WTA uniquement)
     if matches is None or matches.get("success") != 1 or "result" not in matches or not matches["result"]:
         send_telegram_message("❌ Aucun match trouvé ou erreur API.")
         return
 
     for match in matches["result"]:
-        gender = "M" if "atp" in match.get("event_type_type", "").lower() else "F"
+        # Filtrer ATP/WTA uniquement
+        if not is_atp_wta(match):
+            continue
+
+        event_type = match.get("event_type_type", "").lower()
+        gender = "M" if "atp" in event_type else "F"
         feats = compute_diff_features(match, stats_atp if gender == "M" else stats_wta)
         if feats is None:
             continue
@@ -84,7 +97,7 @@ def main():
 
     # Si aucun value bet détecté
     if not bets:
-        send_telegram_message("❌ Aucun value bet détecté aujourd'hui.")
+        send_telegram_message("❌ Aucun value bet détecté aujourd'hui (ATP/WTA uniquement).")
 
 if __name__ == "__main__":
     main() 
